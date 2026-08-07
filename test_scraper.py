@@ -3,14 +3,18 @@ import pandas as pd
 
 game_ids = ["com.supercell.clashofclans" , "com.pubg.imobile" , "com.supercell.clashroyale" , "com.nekki.shadowfight"]
 all_games_data = []
-print("====Multi Game Details====")
+print("Starting Data Pipeline (ETL)...")
 for game_id in game_ids:
     game_details = app(game_id)
+
+    raw_installs_data = game_details['installs']
+    cleaned_installs_data = raw_installs_data.replace('+', '').replace(',', '')
+
     extracted_data = {
         'title': game_details['title'], 
         'developer': game_details['developer'],
         'contentRating': game_details['contentRating'],
-        'installs': game_details['installs'],
+        'installs': cleaned_installs_data,
         'genre': game_details['genre'],
         'ad supported': game_details['adSupported']
     }
