@@ -1,9 +1,12 @@
-from google_play_scraper import app
+from google_play_scraper import app, search
 import pandas as pd
+print("Searching the Playstore for top arcade games...")
+search_results = search("puzzle games", n_hits=10)
+game_ids = []
+for results in search_results:
+    game_ids.append(results['appId'])
 
-game_ids = ["com.supercell.clashofclans" , "com.pubg.imobile" , "com.supercell.clashroyale" , "com.nekki.shadowfight"]
 all_games_data = []
-print("Starting Data Pipeline (ETL)...")
 for game_id in game_ids:
     game_details = app(game_id)
 
