@@ -29,7 +29,11 @@ for game_id in game_ids:
         'content_rating': game_details['contentRating'], 
         'installs': cleaned_installs, 
         'genre': game_details['genre'],
-        'ad_supported': game_details['adSupported'] 
+        'ad_supported': game_details['adSupported'],
+        'app_size': game_details.get('size', 'Unknown'),
+        'min_android': game_details.get('androidVersionText', 'Unknown'),
+        'iap_price_range': game_details.get('inAppProductPrice', 'None'),
+        'rating_score': game_details.get('score', 0.0)
     }
     all_games_data.append(extracted_data)
     print(f"Scraped: {game_details['title']}") 
