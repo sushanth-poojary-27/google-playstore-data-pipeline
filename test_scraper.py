@@ -1,28 +1,46 @@
 from google_play_scraper import app, search
 import pandas as pd
-from sqlalchemy import create_engine # <--- Our new Database tool!
+from sqlalchemy import create_engine
 
-print("1. Searching the Play Store for top games...")
+# Helper function to convert all sizes into Megabytes (MB)
+def parse_size_to_mb(size_str):
+    if not size_str or size_str in ['Varies with device', 'Unknown', 'None']:
+        return None
+    
+    size_str = str(size_str).strip().upper()
+    
+    try:
+        if size_str.endswith('M'):
+            return float(size_str.replace('M', '').replace(',', ''))
+        elif size_str.endswith('K'):
+            return round(float(size_str.replace('K', '').replace(',', '')) / 1024, 2)
+        elif size_str.endswith('G'):
+            return round(float(size_str.replace('G', '').replace(',', '')) * 1024, 2)
+    except ValueError:
+        return None
+        
+    return None
 
-# 1. EXTRACT
-search_results = search("action games", n_hits=10)
-game_ids = []
-for result in search_results:
-    game_ids.append(result['appId'])
+print("1. Searching the Play Store for Arcade games...")
 
-print(f"Success! Found {len(game_ids)} games.")
-print("2. Starting Data Pipeline (ETL)...\n")
+search_results = search("arcade games", n_hits=10)
+game_ids = [result['appId'] for result in search_results]
+
+print(f"Success! Found {len(game_ids)} Arcade games.")
+print("2. Starting Data Pipeline (ETL)...")
 
 all_games_data = []
 
-# 2. TRANSFORM
 for game_id in game_ids:
     game_details = app(game_id)
 
     raw_installs = game_details['installs']
     cleaned_installs = int(raw_installs.replace('+', '').replace(',', ''))
+    
+    # Standardize size to Megabytes
+    raw_size = game_details.get('size', 'Unknown')
+    cleaned_size_mb = parse_size_to_mb(raw_size)
 
-    # CRITICAL: These keys must exactly match your PostgreSQL columns!
     extracted_data = {
         'title': game_details['title'], 
         'developer': game_details['developer'],
@@ -30,29 +48,23 @@ for game_id in game_ids:
         'installs': cleaned_installs, 
         'genre': game_details['genre'],
         'ad_supported': game_details['adSupported'],
-        'app_size': game_details.get('size', 'Unknown'),
+        'app_size_mb': cleaned_size_mb,
         'min_android': game_details.get('androidVersionText', 'Unknown'),
         'iap_price_range': game_details.get('inAppProductPrice', 'None'),
         'rating_score': game_details.get('score', 0.0)
     }
     all_games_data.append(extracted_data)
-    print(f"Scraped: {game_details['title']}") 
+    print(f"Scraped: {game_details['title']} | Clean Size: {cleaned_size_mb} MB") 
 
 print("\n=========================")
-print("3. Loading data into PostgreSQL Database...")
+print("3. Loading clean data into PostgreSQL Database...")
 
 df = pd.DataFrame(all_games_data)
-# Let's keep a CSV backup just in case
 df.to_csv('my_dynamic_games.csv', index=False)
 
-# 3. LOAD (To Database!)
-# --> STOP! REPLACE 'your_password_here' WITH YOUR ACTUAL POSTGRES PASSWORD <--
-DB_PASSWORD = "root123"  # <-- CHANGE THIS TO YOUR POSTGRES PASSWORD
+DB_PASSWORD = "root123" 
 
-# This line builds the bridge to your specific database
 engine = create_engine(f'postgresql://postgres:{"root123"}@localhost:5432/playstore_db')
-
-# This single line shoots your Pandas table directly into your SQL table!
 df.to_sql('top_games', engine, if_exists='append', index=False)
 
-print("SUCCESS! Your Python Data Pipeline is connected to your Database!")
+print("SUCCESS! Standardized dataset loaded into PostgreSQL.")
