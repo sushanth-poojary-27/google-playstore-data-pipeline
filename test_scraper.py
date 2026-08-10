@@ -33,6 +33,8 @@ all_games_data = []
 
 for game_id in game_ids:
     game_details = app(game_id)
+    print(game_details.keys())
+    break
 
     raw_installs = game_details['installs']
     cleaned_installs = int(raw_installs.replace('+', '').replace(',', ''))
@@ -40,7 +42,7 @@ for game_id in game_ids:
     # Standardize size to Megabytes
     raw_size = game_details.get('size', 'Unknown')
     cleaned_size_mb = parse_size_to_mb(raw_size)
-
+    
     extracted_data = {
         'title': game_details['title'], 
         'developer': game_details['developer'],
@@ -55,7 +57,6 @@ for game_id in game_ids:
     }
     all_games_data.append(extracted_data)
     print(f"Scraped: {game_details['title']} | Clean Size: {cleaned_size_mb} MB") 
-
 print("\n=========================")
 print("3. Loading clean data into PostgreSQL Database...")
 
