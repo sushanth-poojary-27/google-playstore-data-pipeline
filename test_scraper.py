@@ -33,13 +33,11 @@ all_games_data = []
 
 for game_id in game_ids:
     game_details = app(game_id)
-    print(game_details.keys())
-    break
 
     raw_installs = game_details['installs']
     cleaned_installs = int(raw_installs.replace('+', '').replace(',', ''))
     
-    # Standardize size to Megabytes
+    # Standardize size to Megabytes+
     raw_size = game_details.get('size', 'Unknown')
     cleaned_size_mb = parse_size_to_mb(raw_size)
     
@@ -50,10 +48,11 @@ for game_id in game_ids:
         'installs': cleaned_installs, 
         'genre': game_details['genre'],
         'ad_supported': game_details['adSupported'],
-        'app_size_mb': cleaned_size_mb,
-        'min_android': game_details.get('androidVersionText', 'Unknown'),
+        'rating_score': game_details.get('score', 0.0),
+        'ratings_count': game_details.get('ratings', 0),
+        'reviews_count': game_details.get('reviews', 0),
         'iap_price_range': game_details.get('inAppProductPrice', 'None'),
-        'rating_score': game_details.get('score', 0.0)
+        'last_updated': str(game_details.get('updated', 'Unknown'))
     }
     all_games_data.append(extracted_data)
     print(f"Scraped: {game_details['title']} | Clean Size: {cleaned_size_mb} MB") 
