@@ -2,62 +2,85 @@ from google_play_scraper import app, search
 import pandas as pd
 from sqlalchemy import create_engine
 
-print("1. Searching the Play Store for target niches...")
+print("1. Searching the Play Store for Arcade & Puzzle games...")
 
-# We are now searching for multiple categories from your Master Plan!
 search_queries = ["arcade games", "puzzle games"]
 all_game_ids = []
 
 for query in search_queries:
-    print(f"Searching for top 100 {query}...")
-    search_results = search(query, n_hits=100) # Upgraded to 100 hits per category
+    print(f"Searching: {query}...")
+    search_results = search(query, n_hits=100)
     for result in search_results:
         all_game_ids.append(result['appId'])
 
-# Remove duplicates in case a game ranks in both Arcade and Puzzle
 all_game_ids = list(set(all_game_ids))
-print(f"Success! Found {len(all_game_ids)} unique games to scrape.")
-print("2. Starting Heavy Data Pipeline (ETL)... This might take a minute or two!")
+print(f"Found {len(all_game_ids)} unique game IDs.")
+print("2. Starting Star Schema ETL Pipeline...")
 
-all_games_data = []
+# Three separate lists for our 3 Star Schema tables
+app_details_list = []
+tech_specs_list = []
+fact_metrics_list = []
 
 for game_id in all_game_ids:
-    # A 'try/except' block is crucial for big data. If one game fails, the pipeline keeps going!
     try:
-        game_details = app(game_id)
+        details = app(game_id)
 
-        raw_installs = game_details['installs']
+        raw_installs = details['installs']
         cleaned_installs = int(raw_installs.replace('+', '').replace(',', ''))
 
-        extracted_data = {
-            'title': game_details['title'], 
-            'developer': game_details['developer'],
-            'content_rating': game_details['contentRating'], 
-            'installs': cleaned_installs, 
-            'genre': game_details['genre'],
-            'ad_supported': game_details['adSupported'],
-            'rating_score': game_details.get('score', 0.0),
-            'ratings_count': game_details.get('ratings', 0),
-            'reviews_count': game_details.get('reviews', 0),
-            'iap_price_range': game_details.get('inAppProductPrice', 'None'),
-            'last_updated': str(game_details.get('updated', 'Unknown'))
-        }
-        all_games_data.append(extracted_data)
-        print(f"Scraped: {game_details['title']}") 
-        
+        # 1. Dimension: App Details (Static text info)
+        app_details_list.append({
+            'app_id': game_id,
+            'title': details['title'],
+            'developer': details['developer'],
+            'genre': details['genre'],
+            'content_rating': details['contentRating'],
+            'ad_supported': details['adSupported']
+        })
+
+        # 2. Dimension: Technical Specs
+        tech_specs_list.append({
+            'app_id': game_id,
+            'iap_price_range': details.get('inAppProductPrice', 'None')
+        })
+
+        # 3. Fact: Daily App Metrics (Changing numbers/reviews)
+        fact_metrics_list.append({
+            'app_id': game_id,
+            'installs': cleaned_installs,
+            'rating_score': details.get('score', 0.0),
+            'ratings_count': details.get('ratings', 0),
+            'reviews_count': details.get('reviews', 0),
+            'last_updated': str(details.get('updated', 'Unknown'))
+        })
+
+        print(f"Extracted & Formatted: {details['title']}")
+
     except Exception as e:
-        print(f"Skipped {game_id} due to an error: {e}")
+        print(f"Skipped {game_id} due to error: {e}")
 
-print("\n=========================")
-print("3. Loading massive dataset into PostgreSQL Database...")
+print("\n==========================================")
+print("3. Converting to DataFrames & Loading into PostgreSQL...")
 
-df = pd.DataFrame(all_games_data)
-# Upgraded backup file 
-df.to_csv('my_massive_games_dataset.csv', index=False)
+# Convert lists into Pandas DataFrames
+df_app_details = pd.DataFrame(app_details_list).drop_duplicates(subset=['app_id'])
+df_tech_specs = pd.DataFrame(tech_specs_list).drop_duplicates(subset=['app_id'])
+df_fact_metrics = pd.DataFrame(fact_metrics_list)
+
+# Save local CSV backups
+df_app_details.to_csv('dim_app_details.csv', index=False)
+df_tech_specs.to_csv('dim_technical_specs.csv', index=False)
+df_fact_metrics.to_csv('fact_daily_app_metrics.csv', index=False)
+
 
 DB_PASSWORD = "root123" 
 
-engine = create_engine(f'postgresql://postgres:{'root123'}@localhost:5432/playstore_db')
-df.to_sql('top_games', engine, if_exists='append', index=False)
+engine = create_engine(f'postgresql://postgres:{DB_PASSWORD}@localhost:5432/playstore_db')
 
-print(f"SUCCESS! {len(df)} rows loaded into PostgreSQL.")
+# Insert into Dimensions FIRST, then Fact table
+df_app_details.to_sql('dim_app_details', engine, if_exists='append', index=False)
+df_tech_specs.to_sql('dim_technical_specs', engine, if_exists='append', index=False)
+df_fact_metrics.to_sql('fact_daily_app_metrics', engine, if_exists='append', index=False)
+
+print("SUCCESS! Data distributed across Star Schema tables.")
