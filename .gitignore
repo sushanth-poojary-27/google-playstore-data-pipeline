@@ -1,0 +1,9 @@
+# Security: Never commit environment variables or credentials
+.env
+
+# Data Files: Keep backups local, don't bloat Git
+*.csv
+
+# Python cache
+__pycache__/
+*.pyc
