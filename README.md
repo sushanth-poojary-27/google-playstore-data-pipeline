@@ -13,13 +13,14 @@ This project is an automated Data Engineering pipeline (ETL) built in Python. It
 * **Database:** PostgreSQL (Star Schema Architecture)
 
 ## 📂 Project Structure
+
 ```text
 ├── data/                  # Local CSV backups (Ignored in Git for storage optimization)
 ├── sql/                   # DDL scripts (init_schema.sql)
 ├── src/                   # Python ETL scripts (test_scraper.py)
 ├── .env.example           # Safe template for local credentials
 ├── requirements.txt       # Python dependencies
-└── README.md              # Project documentation
+└── README.md              # Project documentation ```
 
 How It Works
 Extract: The script searches the Play Store for specific niches (e.g., "action games" or "puzzle games") and extracts unique App IDs. It then scrapes detailed metadata for each app.
