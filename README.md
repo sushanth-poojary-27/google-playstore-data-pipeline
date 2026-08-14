@@ -23,31 +23,24 @@ This project is an automated Data Engineering pipeline (ETL) built in Python. It
 └── README.md              # Project documentation
 ```
 
-How It Works
-Extract: The script searches the Play Store for specific niches (e.g., "action games" or "puzzle games") and extracts unique App IDs. It then scrapes detailed metadata for each app.
+## How It Works
 
-Transform: Raw text data (e.g., installs like "100,000,000+") is cleaned by stripping special characters and converting to optimized integer/float types. The flat data is then split into separate Fact and Dimension DataFrames.
+1. **Extract:** The script searches the Play Store for specific niches (e.g., "action games" or "puzzle games") and extracts unique App IDs. It then scrapes detailed metadata for each app.
+2. **Transform:** Raw text data (e.g., installs like `"100,000,000+"`) is cleaned by stripping special characters and converting to optimized integer/float types. The flat data is then split into separate Fact and Dimension DataFrames.
+3. **Load (Star Schema):** The cleaned DataFrames are injected into PostgreSQL using relational integrity:
+   * **`dim_app_details` (Dimension):** Static game profile data (Title, Developer, Genre).
+   * **`dim_technical_specs` (Dimension):** Configuration data (IAP Pricing).
+   * **`fact_daily_app_metrics` (Fact):** Daily numerical snapshots (Installs, Ratings, Reviews) linked via foreign keys.
 
-Load (Star Schema): The cleaned DataFrames are injected into PostgreSQL using relational integrity:
+## Setup Instructions
 
-dim_app_details (Dimension): Static game profile data (Title, Developer, Genre).
+1. Clone the repository and install dependencies: `pip install -r requirements.txt`
+2. Create a `playstore_db` database in PostgreSQL and run `sql/init_schema.sql` to build the tables.
+3. Copy `.env.example` to `.env` and add your local PostgreSQL credentials.
+4. Run the pipeline: `python src/test_scraper.py`
 
-dim_technical_specs (Dimension): Configuration data (IAP Pricing).
+## Future Upgrades
 
-fact_daily_app_metrics (Fact): Daily numerical snapshots (Installs, Ratings, Reviews) linked via foreign keys.
-
-Setup Instructions
-Clone the repository and install dependencies: pip install -r requirements.txt
-
-Create a playstore_db database in PostgreSQL and run sql/init_schema.sql to build the tables.
-
-Copy .env.example to .env and add your local PostgreSQL credentials.
-
-Run the pipeline: python src/test_scraper.py
-
-Future Upgrades
-Migrate storage to a Cloud Data Lake using AWS S3 (Bronze Layer).
-
-Host the PostgreSQL database on the cloud using Amazon RDS.
-
-Orchestrate daily pipeline runs using Apache Airflow or Docker.
+* Migrate storage to a Cloud Data Lake using **AWS S3** (Bronze Layer).
+* Host the PostgreSQL database on the cloud using **Amazon RDS**.
+* Orchestrate daily pipeline runs using **Apache Airflow** or **Docker**.
