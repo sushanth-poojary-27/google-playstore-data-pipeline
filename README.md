@@ -20,7 +20,8 @@ This project is an automated Data Engineering pipeline (ETL) built in Python. It
 ├── src/                   # Python ETL scripts (test_scraper.py)
 ├── .env.example           # Safe template for local credentials
 ├── requirements.txt       # Python dependencies
-└── README.md              # Project documentation ```
+└── README.md              # Project documentation
+```
 
 How It Works
 Extract: The script searches the Play Store for specific niches (e.g., "action games" or "puzzle games") and extracts unique App IDs. It then scrapes detailed metadata for each app.
